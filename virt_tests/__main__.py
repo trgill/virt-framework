@@ -17,9 +17,10 @@ import os
 from .strategy import run_e2e_test
 from .testvm import STORAGE_LAYOUTS
 
-if __name__ == "__main__":
 
-    parser = ArgumentParser(description="snapm virt tests", prog="virt_tests")
+def main():
+    """Main entry point for virt-framework console script."""
+    parser = ArgumentParser(description="snapm virt tests", prog="virt-framework")
 
     parser.add_argument(
         "--allow-root",
@@ -99,3 +100,7 @@ if __name__ == "__main__":
     )
 
     sys.exit(0 if success else 1)
+
+
+if __name__ == "__main__":
+    main()

@@ -9,6 +9,7 @@
 CLI interface for snapm end-to-end testing framework.
 """
 from argparse import ArgumentParser
+import json
 import random
 import string
 import sys
@@ -74,6 +75,12 @@ def main():
         default=False,
         help="Keep VM running at end of test",
     )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        default=False,
+        help="Output results in JSON format",
+    )
 
     args = parser.parse_args()
 
@@ -88,7 +95,7 @@ def main():
     rand = "".join(random.choices(string.ascii_lowercase + string.digits, k=5))
     vm_name = f"snapm-test-{base_os}-{os.getpid()}-{rand}"
 
-    success = run_e2e_test(
+    result = run_e2e_test(
         vm_name,
         base_os=base_os,
         storage=storage,
@@ -99,7 +106,10 @@ def main():
         ref_name=ref_name,
     )
 
-    sys.exit(0 if success else 1)
+    if args.json:
+        print(json.dumps(result, indent=2))
+
+    sys.exit(0 if result["success"] else 1)
 
 
 if __name__ == "__main__":

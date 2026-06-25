@@ -77,6 +77,46 @@ virt-framework --keep fedora42
 - `--ref-name`: Git ref/branch to test (default: main)
 - `--keep`: Keep VM running after test completion
 - `--allow-root`: Enable root account access on test VM
+- `--json`: Output results in JSON format
+
+### JSON Output
+
+Use the `--json` flag to output structured test results:
+
+```bash
+virt-framework --json fedora42
+```
+
+Example JSON output:
+
+```json
+{
+  "vm_name": "snapm-test-fedora42-12345-abc12",
+  "base_os": "fedora42",
+  "storage": "lvm",
+  "uefi": false,
+  "repo": "snapshotmanager/snapm",
+  "ref_name": "main",
+  "start_time": "2026-06-25T10:30:00Z",
+  "end_time": "2026-06-25T10:45:30Z",
+  "duration_seconds": 930.5,
+  "success": true,
+  "vm_ip": "192.168.122.100",
+  "test_results": {
+    "test_10_verify_system_ready": true,
+    "test_20_create_baseline": true,
+    "test_30_create_snapset": true,
+    "test_40_apply_system_changes": true,
+    "test_50_verify_changes_applied": true,
+    "test_60_reboot_to_snapshot": true,
+    "test_70_verify_snapshot_state": true,
+    "test_80_reboot_to_updated_system": true,
+    "test_90_verify_back_in_updated_system": true,
+    "test_95_initiate_revert": true,
+    "test_99_verify_final_rollback_success": true
+  }
+}
+```
 
 ### Test Workflow
 

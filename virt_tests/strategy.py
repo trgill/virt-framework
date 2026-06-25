@@ -15,6 +15,7 @@ import shlex
 import traceback
 import time
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Dict, List
 
 from .testvm import SnapmTestVM, setup_test_vm
@@ -492,8 +493,10 @@ def run_e2e_test(
     keep: bool = False,
     repo: str = "snapshotmanager/snapm",
     ref_name: str = "main",
-) -> bool:
-    """Run end-to-end test for given OS"""
+) -> Dict:
+    """Run end-to-end test for given OS and return structured results"""
+    start_time = datetime.utcnow()
+
     # Determine volume group name based on OS
     vg_mapping = {"fedora": "fedora", "centos": "cs", "rhel": "rhel"}
 
@@ -511,6 +514,21 @@ def run_e2e_test(
         f"Preparing test for {vm_name} (base_os={base_os}, storage={storage}, uefi={uefi})"
     )
     log_print(f"Target Git branch: https://github.com/{repo} {ref_name}")
+
+    result = {
+        "vm_name": vm_name,
+        "base_os": base_os,
+        "storage": storage,
+        "uefi": uefi,
+        "repo": repo,
+        "ref_name": ref_name,
+        "start_time": start_time.isoformat() + "Z",
+        "success": False,
+        "test_results": {},
+        "vm_ip": None,
+        "error": None,
+    }
+
     # Set up VM
     vm = setup_test_vm(
         vm_name,
@@ -523,8 +541,12 @@ def run_e2e_test(
         ref_name=ref_name,
     )
     if not vm:
-        return False
+        result["error"] = "Failed to set up test VM"
+        result["end_time"] = datetime.utcnow().isoformat() + "Z"
+        result["duration_seconds"] = (datetime.utcnow() - start_time).total_seconds()
+        return result
 
+    result["vm_ip"] = vm.ip_address
     success = False
 
     try:
@@ -533,6 +555,8 @@ def run_e2e_test(
 
         # Execute tests
         success = strategy.execute_tests()
+        result["success"] = success
+        result["test_results"] = strategy.get_test_results()
 
         if success:
             for step in strategy.get_test_results():
@@ -545,12 +569,24 @@ def run_e2e_test(
             first_fail = next((k for k, v in results.items() if not v), None)
             if first_fail:
                 err_print(f"First failing step: {first_fail}")
+                result["first_failure"] = first_fail
 
-        return success
+    except Exception as e:
+        result["error"] = str(e)
+        result["traceback"] = traceback.format_exc()
+        err_print(f"Exception during test execution: {e}")
+        err_print(traceback.format_exc())
 
     finally:
+        end_time = datetime.utcnow()
+        result["end_time"] = end_time.isoformat() + "Z"
+        result["duration_seconds"] = (end_time - start_time).total_seconds()
+
         if not keep:
             # Clean up VM
             vm.cleanup()
         else:
             log_print(f"VM running and accessible at root@{vm.ip_address}")
+            result["vm_kept"] = True
+
+    return result
